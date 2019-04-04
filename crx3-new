@@ -1,0 +1,73 @@
+#!/usr/bin/env node
+
+let crypto = require('crypto')
+let fs = require('fs')
+let Pbf = require('pbf')
+let crx3pb = require('./crx3_pb')
+
+function main() {
+    let pem = fs.readFileSync(process.argv[2])
+    let zipdata = fs.readFileSync('/dev/stdin')
+    let crx = new CrxFile(pem, zipdata)
+    process.stdout.write(crx.creat())
+}
+
+class CrxFile {
+    constructor(pem, zipdata) {
+	this.private_key = crypto.createPrivateKey(pem)
+	this.public_key_der = crypto.createPublicKey(pem)
+	    .export({type: 'spki', format: 'der'})
+	this.zipdata = zipdata
+    }
+
+    id() {
+	return crypto.createHash('sha256')
+	    .update(this.public_key_der).digest().slice(0, 16)
+    }
+
+    signed_data() {
+	let pb = new Pbf()
+	crx3pb.SignedData.write({crx_id: this.id()}, pb)
+	return pb.finish()
+    }
+
+    sign() {
+	let magic_str = "CRX3 SignedData\x00"
+	let signed_data = this.signed_data()
+	return crypto.createSign('sha256')
+	    .update(magic_str)
+	    .update(octets(signed_data))
+	    .update(signed_data)
+	    .update(this.zipdata)
+	    .sign(this.private_key)
+    }
+
+    header() {
+	let pb = new Pbf()
+	crx3pb.CrxFileHeader.write({
+	    sha256_with_rsa: [{	// AsymmetricKeyProof
+		public_key: this.public_key_der,
+		signature: this.sign()
+	    }],
+	    signed_header_data: this.signed_data()
+	}, pb)
+	return pb.finish()
+    }
+
+    creat() {
+	let magic_str = Buffer.from('Cr24')
+	let version = octets('xxx')
+	let header_size = octets(this.header())
+
+	return Buffer.concat([magic_str, version, header_size, this.header(),
+			      this.zipdata])
+    }
+}
+
+function octets(str) {		// 4 bytes, little-endian
+    let buf = Buffer.allocUnsafe(4)
+    buf.writeUInt32LE(str.length, 0)
+    return buf
+}
+
+main()
