@@ -14,11 +14,20 @@
         "node": ">=11"
     },
     "bin": {
-        "crx3-new": "./crx3-new"
+        "crx3-new": "./crx3-new",
+        "crx3-info": "./crx3-info"
     },
     "files": [
+        "crx3-info",
         "crx3-new",
         "crx3_pb.js",
-        "crx3.proto"
+        "crx3.proto",
+        "index.js"
+    ],
+    "keywords": [
+        "crx",
+        "crx3",
+        "chrome",
+        "chromium"
     ]
 }
