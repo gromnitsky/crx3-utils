@@ -1,85 +1,17 @@
 #!/usr/bin/env node
 'use strict';
 
-let crypto = require('crypto')
-let Pbf = require('pbf')
-let crx3_pb = require('./crx3_pb')
-let u = require('./').u
+let crx = require('./index')
+let u = crx.u
 
 async function main() {
     if (!process.argv[2]) u.err(`Usage: ${u.progname()} private.pem < file.zip`)
 
-    let [kp, zipdata] = await Promise.all([keypair(process.argv[2]), u.read()])
+    let [kp, zip] = await Promise.all([crx.keypair(process.argv[2]), u.read()])
 	.catch(u.err)
 
-    let crx = new CrxFile(kp, zipdata)
-    process.stdout.write(crx.creat())
-}
-
-function keypair(file) {
-    return u.read(file).then( r => ({
-	public_der: crypto.createPublicKey(r)
-	    .export({type: 'spki', format: 'der'}),
-	private: crypto.createPrivateKey(r)
-    }))
-}
-
-class CrxFile {
-    constructor(keypair, payload) {
-	this.key = keypair
-	this.payload = payload
-    }
-
-    id() {
-	return crypto.createHash('sha256')
-	    .update(this.key.public_der).digest().slice(0, 16)
-    }
-
-    signed_data() {
-	let pb
-	return this._signed_data || ( // memoization
-	    pb = new Pbf(),
-	    crx3_pb.SignedData.write({crx_id: this.id()}, pb),
-	    this._signed_data = pb.finish()
-	)
-    }
-
-    sign() {
-	let magic_str = "CRX3 SignedData\x00"
-	return crypto.createSign('sha256')
-	    .update(magic_str)
-	    .update(len(this.signed_data()))
-	    .update(this.signed_data())
-	    .update(this.payload)
-	    .sign(this.key.private)
-    }
-
-    header() {
-	let pb = new Pbf()
-	crx3_pb.CrxFileHeader.write({
-	    sha256_with_rsa: [{	// AsymmetricKeyProof
-		public_key: this.key.public_der,
-		signature: this.sign()
-	    }],
-	    signed_header_data: this.signed_data()
-	}, pb)
-	return pb.finish()
-    }
-
-    creat() {
-	let magic_str = Buffer.from('Cr24')
-	let version = len('xxx')
-	let header_size = len(this.header())
-
-	return Buffer.concat([magic_str, version, header_size, this.header(),
-			      this.payload])
-    }
-}
-
-function len(o) {		// 4 bytes, little-endian
-    let buf = Buffer.alloc(4)
-    buf.writeUInt32LE(o.length, 0)
-    return buf
+    let maker = new crx.Maker(kp, zip)
+    process.stdout.write(maker.creat())
 }
 
 main()
