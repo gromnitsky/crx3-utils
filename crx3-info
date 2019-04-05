@@ -31,12 +31,19 @@ function main() {
 
 function dump(hdr) {
     return [
-	["id", hdr.signed_header_data.crx_id.toString('hex')], // FIXME
+	["id", mpdecimal(hdr.signed_header_data.crx_id.toString('hex'))],
 	["header", hdr.header_total_len],
 	["payload", hdr.payload_len],
 	["sha256_with_rsa", hdr.sha256_with_rsa.length],
 	["sha256_with_ecdsa", hdr.sha256_with_ecdsa.length]
     ].map( v => sprintf('%-20s %s', ...v)).join`\n` + "\n"
+}
+
+// for each ch, convert it to base-10, and add the ASCII code for 'a'
+function mpdecimal(hex) {
+    let a = 'a'.charCodeAt(0)
+    return hex.split('')
+	.map( v => String.fromCharCode((parseInt(v, 16)+a))).join``
 }
 
 main()
