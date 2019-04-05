@@ -1,5 +1,22 @@
 {
-  "dependencies": {
-    "pbf": "^3.2.0"
-  }
+    "name": "crx3-utils",
+    "version": "0.0.1",
+    "author": "Alexander Gromnitsky",
+    "description": "Create CRX3 files without Chrome",
+    "license": "MIT",
+    "repository": "github:gromnitsky/crx3-utils",
+    "dependencies": {
+        "pbf": "^3.2.0"
+    },
+    "engines": {
+        "node": ">=11"
+    },
+    "bin": {
+        "crx3-new": "./crx3-new"
+    },
+    "files": [
+        "crx3-new",
+        "crx3_pb.js",
+        "crx3.proto"
+    ]
 }
