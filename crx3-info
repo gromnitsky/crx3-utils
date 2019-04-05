@@ -1,0 +1,83 @@
+#!/usr/bin/env node
+'use strict';
+
+let crypto = require('crypto')
+let Pbf = require('pbf')
+let sprintf = require('sprintf-js').sprintf
+let cmd = require('commander')
+let crx3_pb = require('./crx3_pb')
+let u = require('./').u
+
+function main() {
+    cmd.usage('[options] [public.pem] < file.crx')
+	.option('--key-rsa <idx>', 'rsa public key', parseInt)
+	.parse(process.argv)
+
+    u.read().then(parse).then( hdr => {
+	if (cmd.keyRsa >= 0) {
+	    let der = hdr.sha256_with_rsa[cmd.keyRsa].public_key
+	    return der2pem(der)
+	}
+
+	if (cmd.args[0]) return u.read(cmd.args[0]).then(pem2der).then( key => {
+	    if (!validate(key, hdr.signed_header_data.crx_id))
+		process.exitCode = 1
+	    return ''
+	})
+
+	return dump(hdr)
+
+    }).then(process.stdout.write.bind(process.stdout)).catch(u.err)
+}
+
+function pem2der(buf) {
+    return crypto.createPublicKey(buf).export({type: 'spki', format: 'der'})
+}
+
+function der2pem(buf) {
+    return crypto.createPublicKey({key: buf, type: 'spki', format: 'der'})
+	.export({type: 'spki', format: 'pem'})
+}
+
+function dump(hdr) {
+    return [
+	["id", hdr.signed_header_data.crx_id.toString('hex')], // FIXME
+	["header", hdr.header_total_len],
+	["payload", hdr.payload_len],
+	["sha256_with_rsa", hdr.sha256_with_rsa.length],
+	["sha256_with_ecdsa", hdr.sha256_with_ecdsa.length]
+    ].map( v => sprintf('%-20s %s', ...v)).join`\n` + "\n"
+}
+
+function parse(buf) {
+    if ("Cr24" !== buf.slice(0, 4).toString()) throw new Error('not a crx file')
+    if (3 !== len(buf.slice(4, 8))) throw new Error('not a crx3 file')
+    let header_size = len(buf.slice(8, 12))
+    let meta = 4*3
+    let header = buf.slice(12, header_size + meta)
+
+    let crx_file_header = parse_header(header)
+    return Object.assign({
+	header_total_len: header.length + meta,
+	payload_len: buf.length - header.length - meta
+    }, crx_file_header)
+}
+
+function parse_header(buf) {
+    let pbf = new Pbf(buf)
+    let hdr = crx3_pb.CrxFileHeader.read(pbf)
+
+    pbf = new Pbf(hdr.signed_header_data)
+    hdr.signed_header_data = crx3_pb.SignedData.read(pbf)
+    return hdr
+}
+
+// the first 128 bits of the sha256 hash of the public key must be == crx id
+function validate(public_key, id) {
+    let a = crypto.createHash('sha256').update(public_key).digest().slice(0, 16)
+    return a.equals(id)
+}
+
+function len(buf) { return buf.readUInt32LE(0) }
+
+main()

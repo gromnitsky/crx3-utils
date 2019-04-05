@@ -1,23 +1,23 @@
 #!/usr/bin/env node
+'use strict';
 
 let crypto = require('crypto')
-let path = require('path')
-let fs = require('fs')
 let Pbf = require('pbf')
 let crx3_pb = require('./crx3_pb')
+let u = require('./').u
 
 async function main() {
-    if (!process.argv[2]) err(`Usage: ${progname()} private.pem < file.zip`)
+    if (!process.argv[2]) u.err(`Usage: ${u.progname()} private.pem < file.zip`)
 
-    let [kp, zipdata] = await Promise.all([keypair(process.argv[2]), read()])
-	.catch(err)
+    let [kp, zipdata] = await Promise.all([keypair(process.argv[2]), u.read()])
+	.catch(u.err)
 
     let crx = new CrxFile(kp, zipdata)
     process.stdout.write(crx.creat())
 }
 
 function keypair(file) {
-    return read(file).then( r => ({
+    return u.read(file).then( r => ({
 	public_der: crypto.createPublicKey(r)
 	    .export({type: 'spki', format: 'der'}),
 	private: crypto.createPrivateKey(r)
@@ -81,22 +81,5 @@ function len(o) {		// 4 bytes, little-endian
     buf.writeUInt32LE(o.length, 0)
     return buf
 }
-
-function read(file) {
-    let stream = file ? fs.createReadStream(file) : process.stdin
-    let data = []
-    return new Promise( (resolve, reject) => {
-	stream.on('error', reject)
-	stream.on('data', chunk => data.push(chunk))
-	stream.on('end', () => resolve(Buffer.concat(data)))
-    })
-}
-
-function err(s) {
-    console.error(progname(), 'error:', s instanceof Error ? s.message : s)
-    process.exit(1)
-}
-
-function progname() { return path.basename(process.argv[1]) }
 
 main()
