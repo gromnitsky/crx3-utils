@@ -9,14 +9,14 @@ function main() {
     if (argv.length !== 2+2)
 	u.err(`Usage: ${u.progname()} rsa public.pem < file.zip`)
 
-    u.read().then(crx.parse).then(validate).catch(u.err)
+    u.read().then(crx.parse).then(verify).catch(u.err)
 }
 
-function validate(hdr) {
+function verify(hdr) {
     if (argv[2] !== 'rsa') throw new Error(`no support for ${argv[2]}`)
 
     return u.read(argv[3]).then(crx.pem2der).then( key => {
-	if (!crx.validate_rsa(key, hdr.signed_header_data.crx_id))
+	if (!crx.verify_rsa(key, hdr.signed_header_data.crx_id))
 	    process.exitCode = 1
     })
 }

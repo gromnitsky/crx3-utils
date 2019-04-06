@@ -50,16 +50,16 @@ bQIDAQAB
 `)
     })
 
-    test('validate', function() {
+    test('verify', function() {
 	let r = sh('../crx3-info', ['rsa', '0'],
 		   {input: fs.readFileSync(tmp('foo.crx'))})
 	fs.writeFileSync(tmp('foo.public_key.pem'), r.stdout)
 
-	r = sh('../crx3-validate', ['rsa', tmp('foo.public_key.pem')],
+	r = sh('../crx3-verify', ['rsa', tmp('foo.public_key.pem')],
 	       {input: fs.readFileSync(tmp('foo.crx'))})
 	assert(r.status === 0)
 
-	r = sh('../crx3-validate', ['rsa', 'alien_public.pem'],
+	r = sh('../crx3-verify', ['rsa', 'alien_public.pem'],
 	       {input: fs.readFileSync(tmp('foo.crx'))})
 	assert(r.status !== 0)
     })

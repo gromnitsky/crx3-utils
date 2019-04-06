@@ -2,7 +2,7 @@
     "name": "crx3-utils",
     "version": "0.0.1",
     "author": "Alexander Gromnitsky",
-    "description": "Create CRX3 files without Chrome",
+    "description": "Create CRX3 files without Chrome, extract public keys, verify signatures; cli & api",
     "license": "MIT",
     "repository": "github:gromnitsky/crx3-utils",
     "dependencies": {
@@ -12,14 +12,16 @@
         "node": ">=11"
     },
     "bin": {
+        "crx3-info": "./crx3-info",
         "crx3-new": "./crx3-new",
-        "crx3-info": "./crx3-info"
+        "crx3-verify": "./crx3-verify"
     },
     "files": [
         "crx3-info",
         "crx3-new",
         "crx3_pb.js",
         "crx3.proto",
+        "crx3-verify",
         "index.js"
     ],
     "keywords": [

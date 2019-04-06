@@ -48,7 +48,7 @@ I/blb/ULUw+jvgFlSxZblWHiiGoSdI0vLfJpxjAvIeqRnLW2EZuTvJaaKkYtJW8q
 
 Validate (returns 0 on success):
 
-    $ crx3-validate rsa public.pem < file.crx
+    $ crx3-verify rsa public.pem < file.crx
 
 ## License
 
