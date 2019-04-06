@@ -36,7 +36,7 @@ sha256_with_ecdsa    0
     })
 
     test('public key extraction', function() {
-	let r = sh('../crx3-info', ['--key-rsa', '0'],
+	let r = sh('../crx3-info', ['rsa', '0'],
 		   {input: fs.readFileSync(tmp('foo.crx'))})
 	assert.equal(r.stdout.toString(), `-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtaMIFViDA/RgyGW2Rdqm
@@ -51,15 +51,15 @@ bQIDAQAB
     })
 
     test('validate', function() {
-	let r = sh('../crx3-info', ['--key-rsa', '0'],
+	let r = sh('../crx3-info', ['rsa', '0'],
 		   {input: fs.readFileSync(tmp('foo.crx'))})
 	fs.writeFileSync(tmp('foo.public_key.pem'), r.stdout)
 
-	r = sh('../crx3-info', [tmp('foo.public_key.pem')],
+	r = sh('../crx3-validate', ['rsa', tmp('foo.public_key.pem')],
 	       {input: fs.readFileSync(tmp('foo.crx'))})
 	assert(r.status === 0)
 
-	r = sh('../crx3-info', ['alien_public.pem'],
+	r = sh('../crx3-validate', ['rsa', 'alien_public.pem'],
 	       {input: fs.readFileSync(tmp('foo.crx'))})
 	assert(r.status !== 0)
     })

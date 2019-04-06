@@ -17,9 +17,9 @@ Print info:
 
 ~~~
 $ crx3-info < file.crx
-id                   ac5e8cf3bb198d17d8ad1d42ca053afd
+id                   nofnjfackdchgipjnedfdcmhldeejknj
 header               593
-payload              13527
+payload              5581
 sha256_with_rsa      1
 sha256_with_ecdsa    0
 ~~~
@@ -34,7 +34,7 @@ $ crx3-info < file.crx | awk '/^header/ {print $2}' \
 Extract the 1st rsa public key:
 
 ~~~
-$ crx3-info --key-rsa 0 < 1.crx
+$ crx3-info rsa 0 < file.crx
 -----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmxbf7fCk1V+XL9prvqpx
 BrI2JA6P5Y7rqABIC3PB8K2lJwo0NokwKwHxpC6yRQelvnFUsODrRjrEYMPeImgp
@@ -48,7 +48,7 @@ I/blb/ULUw+jvgFlSxZblWHiiGoSdI0vLfJpxjAvIeqRnLW2EZuTvJaaKkYtJW8q
 
 Validate (returns 0 on success):
 
-    $ crx3-info public.pem < file.crx
+    $ crx3-validate rsa public.pem < file.crx
 
 ## License
 

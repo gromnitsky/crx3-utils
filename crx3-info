@@ -1,28 +1,19 @@
 #!/usr/bin/env node
 'use strict';
 
-let sprintf = require('sprintf-js').sprintf
-let cmd = require('commander')
 let crx = require('./index')
 let u = crx.u
+let argv = process.argv
 
 function main() {
-    cmd.usage('[options] [public.pem] < file.crx')
-	.option('--key-rsa <idx>', 'rsa public key', parseInt)
-	.parse(process.argv)
+    if (argv[2] && argv.length !== 2+2)
+	u.err(`Usage: ${u.progname()} [rsa [0-9]+] < file.zip`)
 
     u.read().then(crx.parse).then( hdr => {
-	if (cmd.keyRsa >= 0) {
-	    let der = hdr.sha256_with_rsa[cmd.keyRsa].public_key
+	if (argv[2] === 'rsa') {
+	    let der = hdr.sha256_with_rsa[argv[3]].public_key
 	    return crx.der2pem(der)
-	}
-
-	if (cmd.args[0]) return u.read(cmd.args[0]).then(crx.pem2der)
-	    .then( key => {
-		if (!crx.validate(key, hdr.signed_header_data.crx_id))
-		    process.exitCode = 1
-		return ''
-	    })
+	} else if (argv[2]) throw new Error(`no support for ${argv[2]}`)
 
 	return dump(hdr)
 
@@ -36,7 +27,7 @@ function dump(hdr) {
 	["payload", hdr.payload_len],
 	["sha256_with_rsa", hdr.sha256_with_rsa.length],
 	["sha256_with_ecdsa", hdr.sha256_with_ecdsa.length]
-    ].map( v => sprintf('%-20s %s', ...v)).join`\n` + "\n"
+    ].map( ([k,v]) => k.padEnd(20, ' ') + ' ' + v).join`\n` + "\n"
 }
 
 // for each ch, convert it to base-10, and add the ASCII code for 'a'

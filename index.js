@@ -53,7 +53,7 @@ function parse_header(buf) {
 }
 
 // the first 128 bits of the sha256 hash of the public key must be == crx id
-exports.validate = function(public_key, id) {
+exports.validate_rsa = function(public_key, id) {
     let a = crypto.createHash('sha256').update(public_key).digest().slice(0, 16)
     return a.equals(id)
 }
