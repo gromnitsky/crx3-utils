@@ -7,17 +7,19 @@ let argv = process.argv
 
 function main() {
     if (argv[2] && argv.length !== 2+2)
-	u.err(`Usage: ${u.progname()} [rsa [0-9]+] < file.zip`)
+	u.err(`Usage: ${u.progname()} [rsa|ec [0-9]+] < file.zip`)
 
     u.read().then(crx.parse).then( hdr => {
-	if (argv[2] === 'rsa') {
-	    let der = hdr.sha256_with_rsa[argv[3]].public_key
-	    return crx.der2pem(der)
-	} else if (argv[2]) throw new Error(`no support for ${argv[2]}`)
-
-	return dump(hdr)
-
+	return argv[2] ? public_key_extract(hdr, argv[2], argv[3]) : dump(hdr)
     }).then(process.stdout.write.bind(process.stdout)).catch(u.err)
+}
+
+function public_key_extract(hdr, proof, index) {
+    let type = { 'rsa': 'sha256_with_rsa', 'ec': 'sha256_with_ecdsa' }
+    let container = type[proof]
+    if (!container) throw new Error(`no support for ${proof}`)
+    if (!hdr[container][index]) throw new Error('invalid index')
+    return crx.der2pem(hdr[container][index].public_key)
 }
 
 function dump(hdr) {
@@ -30,7 +32,12 @@ function dump(hdr) {
     ].map( ([k,v]) => k.padEnd(20, ' ') + ' ' + v).join`\n` + "\n"
 }
 
-// for each ch, convert it to base-10, and add the ASCII code for 'a'
+/* https://stackoverflow.com/a/2050916/81081
+
+   'the encoding uses a-p instead of 0-9a-f. The reason is that
+   leading numeric characters in the host field of an origin can wind
+   up being treated as potential IP addresses by Chrome. We refer to
+   it internally as "mpdecimal" after the guy who came up with it.' */
 function mpdecimal(hex) {
     let a = 'a'.charCodeAt(0)
     return hex.split('')
