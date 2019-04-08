@@ -1,23 +1,28 @@
 #!/usr/bin/env node
 'use strict';
 
+let crypto = require('crypto')
 let crx = require('./index')
 let u = crx.u
 let argv = process.argv
 
 function main() {
-    if (argv.length !== 2+2)
-	u.err(`Usage: ${u.progname()} rsa public.pem < file.zip`)
+    if (argv.length !== 2+3)
+	u.err(`Usage: ${u.progname()} rsa|ec index public.pem < file.zip`)
 
     u.read().then(crx.parse).then(verify).catch(u.err)
 }
 
 function verify(hdr) {
-    if (argv[2] !== 'rsa') throw new Error(`no support for ${argv[2]}`)
+    let container = crx.container(hdr, argv[2], argv[3])
 
-    return u.read(argv[3]).then(crx.pem2der).then( key => {
-	if (!crx.verify_rsa(key, hdr.signed_header_data.crx_id))
-	    process.exitCode = 1
+    return u.read(argv[4]).then( key => {
+	let main_idx = crx.rsa_main_index(hdr)
+	let main_public_key = hdr.sha256_with_rsa[main_idx].public_key
+
+	let maker = new crx.Maker({public_der: main_public_key}, hdr.payload)
+	let v = maker.signature_data_update(crypto.createVerify('sha256')).end()
+	if (!v.verify(key, container.signature)) process.exitCode = 1
     })
 }
 

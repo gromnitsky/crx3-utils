@@ -30,7 +30,7 @@ suite('cli', function() {
 		     `id                   efhdamkdoffheefhloplkcfimcfkjgip
 header               593
 payload              231
-sha256_with_rsa      1
+sha256_with_rsa      1 main_idx=0
 sha256_with_ecdsa    0
 `)
     })
@@ -55,11 +55,11 @@ bQIDAQAB
 		   {input: fs.readFileSync(tmp('foo.crx'))})
 	fs.writeFileSync(tmp('foo.public_key.pem'), r.stdout)
 
-	r = sh('../crx3-verify', ['rsa', tmp('foo.public_key.pem')],
+	r = sh('../crx3-verify', ['rsa', '0', tmp('foo.public_key.pem')],
 	       {input: fs.readFileSync(tmp('foo.crx'))})
 	assert(r.status === 0)
 
-	r = sh('../crx3-verify', ['rsa', 'alien_public.pem'],
+	r = sh('../crx3-verify', ['rsa', '0', 'alien_public.pem'],
 	       {input: fs.readFileSync(tmp('foo.crx'))})
 	assert(r.status !== 0)
     })

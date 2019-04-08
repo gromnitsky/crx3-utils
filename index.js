@@ -39,7 +39,7 @@ exports.parse = function(buf) {
     let crx_file_header = parse_header(header)
     return Object.assign({
 	header_total_len: header.length + meta,
-	payload_len: buf.length - header.length - meta
+	payload: buf.slice(header.length + meta)
     }, crx_file_header)
 }
 
@@ -50,12 +50,6 @@ function parse_header(buf) {
     pbf = new Pbf(hdr.signed_header_data)
     hdr.signed_header_data = crx3_pb.SignedData.read(pbf)
     return hdr
-}
-
-// the first 128 bits of the sha256 hash of the public key must be == crx id
-exports.verify_rsa = function(public_key, id) {
-    let a = crypto.createHash('sha256').update(public_key).digest().slice(0, 16)
-    return a.equals(id)
 }
 
 exports.pem2der = function(buf) {
@@ -80,10 +74,7 @@ exports.Maker = class {
 	this.payload = payload
     }
 
-    id() {
-	return crypto.createHash('sha256')
-	    .update(this.key.public_der).digest().slice(0, 16)
-    }
+    id() { return exports.crx_id(this.key.public_der) }
 
     signed_data() {
 	let pb
@@ -95,13 +86,16 @@ exports.Maker = class {
     }
 
     sign() {
+	return this.signature_data_update(crypto.createSign('sha256'))
+	    .sign(this.key.private)
+    }
+
+    signature_data_update(signature) {
 	let magic_str = "CRX3 SignedData\x00"
-	return crypto.createSign('sha256')
-	    .update(magic_str)
+	return signature.update(magic_str)
 	    .update(len(this.signed_data()))
 	    .update(this.signed_data())
 	    .update(this.payload)
-	    .sign(this.key.private)
     }
 
     header() {
@@ -130,4 +124,33 @@ function len(o) {		// 4 bytes, little-endian
     let buf = Buffer.alloc(4)
     buf.writeUInt32LE(o.length, 0)
     return buf
+}
+
+exports.crx_id = function(public_key) {
+    return crypto.createHash('sha256').update(public_key).digest().slice(0, 16)
+}
+
+/* https://stackoverflow.com/a/2050916/81081
+
+   'the encoding uses a-p instead of 0-9a-f. The reason is that
+   leading numeric characters in the host field of an origin can wind
+   up being treated as potential IP addresses by Chrome. We refer to
+   it internally as "mpdecimal" after the guy who came up with it.' */
+exports.mpdecimal = function(buf) {
+    let a = 'a'.charCodeAt(0)
+    return buf.toString('hex').split('')
+	.map( v => String.fromCharCode((parseInt(v, 16)+a))).join``
+}
+
+exports.rsa_main_index = function(hdr) {
+    let id = hdr.signed_header_data.crx_id
+    return hdr.sha256_with_rsa
+	.findIndex( proof => id.equals(exports.crx_id(proof.public_key)))
+}
+
+exports.container = function(hdr, proof, index) {
+    let type = { 'rsa': 'sha256_with_rsa', 'ec': 'sha256_with_ecdsa' }
+    let ctr = type[proof]; if (!ctr) throw new Error(`no support for ${proof}`)
+    ctr = hdr[ctr][index]; if (!ctr) throw new Error(`invalid index`)
+    return ctr
 }

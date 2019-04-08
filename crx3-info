@@ -15,33 +15,18 @@ function main() {
 }
 
 function public_key_extract(hdr, proof, index) {
-    let type = { 'rsa': 'sha256_with_rsa', 'ec': 'sha256_with_ecdsa' }
-    let container = type[proof]
-    if (!container) throw new Error(`no support for ${proof}`)
-    if (!hdr[container][index]) throw new Error('invalid index')
-    return crx.der2pem(hdr[container][index].public_key)
+    return crx.der2pem(crx.container(hdr, proof, index).public_key)
 }
 
 function dump(hdr) {
     return [
-	["id", mpdecimal(hdr.signed_header_data.crx_id.toString('hex'))],
+	["id", crx.mpdecimal(hdr.signed_header_data.crx_id)],
 	["header", hdr.header_total_len],
-	["payload", hdr.payload_len],
-	["sha256_with_rsa", hdr.sha256_with_rsa.length],
+	["payload", hdr.payload.length],
+	["sha256_with_rsa",
+	 `${hdr.sha256_with_rsa.length} main_idx=${crx.rsa_main_index(hdr)}`],
 	["sha256_with_ecdsa", hdr.sha256_with_ecdsa.length]
     ].map( ([k,v]) => k.padEnd(20, ' ') + ' ' + v).join`\n` + "\n"
-}
-
-/* https://stackoverflow.com/a/2050916/81081
-
-   'the encoding uses a-p instead of 0-9a-f. The reason is that
-   leading numeric characters in the host field of an origin can wind
-   up being treated as potential IP addresses by Chrome. We refer to
-   it internally as "mpdecimal" after the guy who came up with it.' */
-function mpdecimal(hex) {
-    let a = 'a'.charCodeAt(0)
-    return hex.split('')
-	.map( v => String.fromCharCode((parseInt(v, 16)+a))).join``
 }
 
 main()
