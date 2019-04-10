@@ -1,5 +1,7 @@
 # crx3-utils
 
+http://gromnitsky.blogspot.com/2019/04/crx3.html
+
 Starting with Chrome 73, Chrome changed the package format for
 extensions to the CRX3 file format.
 
